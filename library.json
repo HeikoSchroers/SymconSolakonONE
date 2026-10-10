@@ -1,0 +1,12 @@
+{
+    "id": "{F3E5F8A6-5FF4-461A-9FB2-041F44E2DF3E}",
+    "name": "SymconSolakonONE",
+    "author": "Heiko Schrörs",
+    "url": "https://github.com/HeikoSchroers/SymconSolakonONE",
+    "compatibility": {
+        "version": "8.0"
+    },
+    "version": "1.0",
+    "build": 1,
+    "date": 0
+}
