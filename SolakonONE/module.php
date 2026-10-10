@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../libs/VerbindungKette.php';
+
 /**
  * Solakon ONE (Balkonspeicher) ueber das ModBus Gateway von IP-Symcon.
  *
- * Die Instanz haengt unter einem ModBus Gateway (Modbus TCP, Port 502,
- * Geraete-ID 1). Adresse, Port und Geraete-ID stehen dort bzw. im Client
- * Socket - in diesem Modul steht keine Adresse.
+ * Die Instanz haengt unter einem ModBus Gateway mit Client Socket. Adresse,
+ * Port und Unit-ID stehen in dieser Instanz; sie traegt sie selbst in Gateway
+ * und Socket ein (libs/VerbindungKette.php).
  *
  * Grundlage: "Solakon ONE Modbus Protokoll v.02/26". Jedes verwendete
  * Register ist am echten Geraet geprueft (Firmware 2.031).
@@ -23,6 +25,9 @@ declare(strict_types=1);
  */
 class SolakonONE extends IPSModule
 {
+    use \SymconSolakonONE\VerbindungKette;
+
+    private const VERBINDUNG = ['Port' => 502, 'GatewayMode' => 0, 'LoggerSerial' => false];
     private const GATEWAY = '{A5F663AB-C400-4FE5-B207-4D67CC030564}';
     private const MODBUS_TX = '{E310B701-4AE7-458E-B618-EC13A1A6F6A8}';
 
@@ -54,6 +59,7 @@ class SolakonONE extends IPSModule
         $this->RegisterPropertyBoolean('AllowWrite', false);
         $this->RegisterAttributeString('YieldState', '');
         $this->RegisterTimer('Update', 0, 'SOLAKON_Update($_IPS[\'TARGET\']);');
+        $this->registriereVerbindung();
 
         $this->RequireParent(self::GATEWAY);
     }
@@ -65,7 +71,12 @@ class SolakonONE extends IPSModule
         $this->registerVariables();
         $this->setActionEnabled('FERN_SOLL', $this->ReadPropertyBoolean('AllowWrite'));
         $this->SetTimerInterval('Update', max(2, $this->ReadPropertyInteger('Interval')) * 1000);
-        $this->SetStatus(102);
+        $this->wendeVerbindungAn();
+    }
+
+    public function GetConfigurationForm()
+    {
+        return $this->formularMitVerbindung(__DIR__ . '/form.json');
     }
 
     public function RequestAction($Ident, $Value)
@@ -153,6 +164,12 @@ class SolakonONE extends IPSModule
             $this->SetValue("PV{$n}_GESAMT", max($gesamt, $heute));
         }
         $this->WriteAttributeString('YieldState', json_encode($st));
+    }
+
+    /** Fuer "Verbindung testen" (libs/VerbindungKette.php). */
+    private function hinweisOhneAntwort(): string
+    {
+        return 'Ist der Speicher im Netz erreichbar, stimmen Adresse und Port?';
     }
 
     // ===================== Modbus ueber das Gateway =====================
