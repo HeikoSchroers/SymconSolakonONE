@@ -46,6 +46,11 @@ Eingänge stimmt so immer mit dem Gerät überein.
 Die Gesamtzähler werden nie auf 0 gesetzt. Eine 0 ist immer ein Lesefehler,
 und das Archiv würde den ganzen Stand sonst neu zählen.
 
+**Umstieg von einer anderen Lösung:** Die Gesamtzähler je Eingang beginnen
+bei 0. Mit `SOLAKON_SetInputTotals($id, $PV1, $PV2, $PV3, $PV4)` lassen sich
+die bisherigen Stände in kWh übernehmen. Danach zählt das Modul von dort
+weiter.
+
 ## Schreiben
 
 Ab Werk liest die Instanz nur. Schreiben ist erst möglich, wenn in der

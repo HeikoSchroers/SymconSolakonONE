@@ -135,6 +135,26 @@ class SolakonONE extends IPSModule
         return $this->writeRegisters(46002, [$Seconds & 0xFFFF]);
     }
 
+    /**
+     * Gesamtertrag je Eingang uebernehmen, z. B. aus einer frueheren Loesung.
+     * Der heutige Anteil wird beibehalten, die Zaehler laufen von dort weiter.
+     */
+    public function SetInputTotals(float $PV1, float $PV2, float $PV3, float $PV4): void
+    {
+        $st = json_decode($this->ReadAttributeString('YieldState'), true);
+        if (!is_array($st) || ($st['d'] ?? '') !== date('Y-m-d')) {
+            $st = ['d' => date('Y-m-d'), 'roh' => [0.0, 0.0, 0.0, 0.0], 't' => 0];
+        }
+        $st['basis'] = [];
+        foreach ([$PV1, $PV2, $PV3, $PV4] as $i => $gesamt) {
+            $n = $i + 1;
+            $heute = (float) $this->GetValue("PV{$n}_HEUTE");
+            $st['basis'][] = max(0.0, $gesamt - $heute);
+            $this->SetValue("PV{$n}_GESAMT", max($gesamt, $heute));
+        }
+        $this->WriteAttributeString('YieldState', json_encode($st));
+    }
+
     // ===================== Modbus ueber das Gateway =====================
 
     /** Liest Holding-Register (Funktion 3). Gibt [Adresse => Wert] oder null. */
