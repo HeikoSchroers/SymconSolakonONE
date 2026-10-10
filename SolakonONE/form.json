@@ -1,0 +1,32 @@
+{
+    "elements": [
+        {
+            "type": "Label",
+            "caption": "Die Instanz hängt unter einem ModBus Gateway (Modbus TCP, Port 502, Geräte-ID 1). Adresse und Port stehen im Client Socket darüber."
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "Interval",
+            "caption": "Abfrage alle",
+            "suffix": "Sekunden",
+            "minimum": 2
+        },
+        {
+            "type": "CheckBox",
+            "name": "AllowWrite",
+            "caption": "Schreibzugriff erlauben (Leistungsvorgabe, Fernsteuerung)"
+        },
+        {
+            "type": "Label",
+            "caption": "Ohne Haken liest die Instanz nur. Der Haken schaltet die Bedienung des Sollwerts frei und die Funktionen SOLAKON_SetPowerSetpoint, SOLAKON_SetRemoteControl und SOLAKON_SetRemoteTimeout."
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Jetzt lesen",
+            "onClick": "SOLAKON_Update($id);"
+        }
+    ],
+    "status": []
+}
