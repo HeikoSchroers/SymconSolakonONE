@@ -33,7 +33,6 @@ class SolakonONE extends IPSModule
 
     // Darstellungen von IP-Symcon (/usr/share/symcon/presentations/)
     private const P_WERT = '{3319437D-7CDE-699D-750A-3C6A3841FA75}';
-    private const P_AUFZ = '{52D9E126-D7D2-2CBB-5E62-4CF7BA7C5D82}';
     private const P_ZEIT = '{497C4845-27FA-6E4F-AE37-5D951D3BDBF9}';
     private const P_DAUER = '{08A6AF76-394E-D354-48D5-BFC690488E4E}';
 
@@ -418,7 +417,7 @@ class SolakonONE extends IPSModule
         $v('ALARME', 'Alarmmeldungen', 3, ['ICON' => 'Alert']);
         $v('FERN', 'Fernsteuerung', 3, ['ICON' => 'Remote']);
         $v('FERN_SOLL', 'Fernsteuerung Sollwert', 1, self::pWert(' W', 0, 'Remote', -2400, 2400));
-        $v('FERN_REST', 'Fernsteuerung Restzeit', 1, self::pDauer());
+        $v('FERN_REST', 'Fernsteuerung Restzeit', 1, self::pDauer(2));
 
         // Leistung (Batterie > 0 laedt, < 0 entlaedt)
         $v('P_AC', 'Abgabe ans Haus', 1, self::pWert(' W', 0, 'Lightning', -1200, 1200));
@@ -520,18 +519,36 @@ class SolakonONE extends IPSModule
                 'ICON' => $icon, 'MIN' => $min, 'MAX' => $max];
     }
 
+    /**
+     * Feste Texte fuer Ganzzahlen. Nicht die Darstellung "Aufzaehlung": Die
+     * verlangt eine Aktion an der Variable, und ohne Aktion zeigt die
+     * Kachel-Visualisierung nur die rohe Zahl. Die Darstellung "Wert" kennt
+     * fuer Ganzzahlen Intervalle mit festem Text.
+     */
     private static function pAufz(array $optionen, string $icon): array
     {
-        $o = [];
+        $iv = [];
         foreach ($optionen as $wert => $text) {
-            $o[] = ['Value' => $wert, 'Caption' => $text, 'IconActive' => false, 'IconValue' => '', 'Color' => -1];
+            $iv[] = ['IntervalMinValue' => $wert, 'IntervalMaxValue' => $wert, 'ConstantActive' => true, 'ConstantValue' => $text,
+                     'ConversionFactor' => 1, 'PrefixActive' => false, 'PrefixValue' => '', 'IconActive' => false, 'IconValue' => '',
+                     'ColorActive' => false, 'ColorValue' => -1, 'ContentColorActive' => false, 'ContentColorValue' => -1,
+                     'SuffixActive' => false, 'SuffixValue' => '', 'DigitsActive' => false, 'DigitsValue' => 0];
         }
-        return ['PRESENTATION' => self::P_AUFZ, 'OPTIONS' => json_encode($o), 'ICON' => $icon, 'LAYOUT' => 0];
+        return ['PRESENTATION' => self::P_WERT, 'ICON' => $icon, 'DIGITS' => 0, 'INTERVALS_ACTIVE' => true, 'INTERVALS' => json_encode($iv)];
     }
 
+    /**
+     * Feste Texte fuer Ja/Nein-Werte, aus demselben Grund wie pAufz. Ohne
+     * Aktion zeigte die Kachel-Visualisierung sonst ein rotes "Aus".
+     */
     private static function pBool(string $aus, string $an, string $icon): array
     {
-        return self::pAufz([0 => $aus, 1 => $an], $icon);
+        $o = [];
+        foreach ([[false, $aus], [true, $an]] as [$wert, $text]) {
+            $o[] = ['Value' => $wert, 'Caption' => $text, 'IconActive' => false, 'IconValue' => '',
+                    'ColorActive' => false, 'ColorValue' => -1, 'ContentColorActive' => false, 'ContentColorValue' => -1];
+        }
+        return ['PRESENTATION' => self::P_WERT, 'ICON' => $icon, 'OPTIONS' => json_encode($o)];
     }
 
     private static function pZeit(string $icon = 'Clock'): array
@@ -539,9 +556,14 @@ class SolakonONE extends IPSModule
         return ['PRESENTATION' => self::P_ZEIT, 'DATE' => 2, 'TIME' => 1, 'MONTH_TEXT' => false, 'ICON' => $icon];
     }
 
-    private static function pDauer(string $icon = 'Hourglass'): array
+    /**
+     * Format 1 = Minuten und Sekunden, 2 = Stunden, Minuten und Sekunden. Die
+     * Restzeit der Fernsteuerung reicht bis 65535 s (gut 18 h); mit Format 1
+     * erschienen 2 h als "120:00".
+     */
+    private static function pDauer(int $format = 1, string $icon = 'Hourglass'): array
     {
-        return ['PRESENTATION' => self::P_DAUER, 'FORMAT' => 1, 'MILLISECONDS' => false, 'ICON' => $icon];
+        return ['PRESENTATION' => self::P_DAUER, 'FORMAT' => $format, 'MILLISECONDS' => false, 'ICON' => $icon];
     }
 
     // ===================== Umrechnungen =====================
