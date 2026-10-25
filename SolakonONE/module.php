@@ -292,6 +292,7 @@ class SolakonONE extends IPSModule
         $kapWh = self::u16($r, 37635);
         if ($kapWh !== null && $kapWh > 0) {
             $this->SetValue('KAPAZ', $kapWh * 10 / 1000.0);
+            $this->inhaltObergrenze($kapWh * 10 / 1000.0);
             if ($soc !== null) {
                 $this->SetValue('E_INHALT', round($kapWh * 10 / 1000.0 * $soc / 100.0, 2));
             }
@@ -434,7 +435,11 @@ class SolakonONE extends IPSModule
 
         // Batterie
         $v('SOC', 'Ladestand', 1, self::pWert(' %', 0, 'Battery', 0, 100));
-        $v('E_INHALT', 'Energie im Speicher', 2, self::pWert(' kWh', 2, 'Battery', 0, 2.2));
+        // Obergrenze = gemeldete Nennkapazitaet; sie waechst mit jedem Zusatzakku.
+        // Solange sie unbekannt ist, ohne Obergrenze.
+        $kapId = @IPS_GetObjectIDByIdent('KAPAZ', $this->InstanceID);
+        $kap = $kapId ? round((float) GetValue($kapId), 2) : 0.0;
+        $v('E_INHALT', 'Energie im Speicher', 2, self::pWert(' kWh', 2, 'Battery', 0, $kap));
         $v('KAPAZ', 'Nennkapazität', 2, self::pWert(' kWh', 2, 'Battery'));
         $v('BAT_U', 'Batteriespannung', 2, self::pWert(' V', 1, 'Power', 0, 60));
         $v('BAT_I', 'Batteriestrom', 2, self::pWert(' A', 1, 'Electricity', -80, 80));
@@ -495,6 +500,24 @@ class SolakonONE extends IPSModule
         if ($icon !== '' && IPS_GetObject($id)['ObjectIcon'] !== $icon) {
             IPS_SetIcon($id, $icon);
         }
+    }
+
+    /** Obergrenze von "Energie im Speicher" an die Nennkapazitaet anpassen. */
+    private function inhaltObergrenze(float $kap): void
+    {
+        $kap = round($kap, 2);
+        $id = @IPS_GetObjectIDByIdent('E_INHALT', $this->InstanceID);
+        if (!$id || $kap <= 0) {
+            return;
+        }
+        // Die Darstellung gehoert dem Modul (VariablePresentation); aendern
+        // laesst sie sich nur ueber erneutes Registrieren.
+        $p = IPS_GetVariable($id)['VariablePresentation'];
+        if (is_array($p) && abs((float) ($p['MAX'] ?? 0) - $kap) < 0.005) {
+            return;
+        }
+        $this->RegisterVariableFloat('E_INHALT', 'Energie im Speicher', self::pWert(' kWh', 2, 'Battery', 0, $kap),
+            IPS_GetObject($id)['ObjectPosition']);
     }
 
     private function setActionEnabled(string $ident, bool $an): void
