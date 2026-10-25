@@ -510,12 +510,14 @@ class SolakonONE extends IPSModule
         if (!$id || $kap <= 0) {
             return;
         }
-        $p = IPS_GetVariable($id)['VariableCustomPresentation'];
-        if (!is_array($p) || !isset($p['PRESENTATION']) || abs((float) ($p['MAX'] ?? 0) - $kap) < 0.005) {
+        // Die Darstellung gehoert dem Modul (VariablePresentation); aendern
+        // laesst sie sich nur ueber erneutes Registrieren.
+        $p = IPS_GetVariable($id)['VariablePresentation'];
+        if (is_array($p) && abs((float) ($p['MAX'] ?? 0) - $kap) < 0.005) {
             return;
         }
-        $p['MAX'] = $kap;
-        IPS_SetVariableCustomPresentation($id, $p);
+        $this->RegisterVariableFloat('E_INHALT', 'Energie im Speicher', self::pWert(' kWh', 2, 'Battery', 0, $kap),
+            IPS_GetObject($id)['ObjectPosition']);
     }
 
     private function setActionEnabled(string $ident, bool $an): void
